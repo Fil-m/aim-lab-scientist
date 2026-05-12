@@ -121,10 +121,19 @@ class ResearchApp {
             const source = this.aCtx.createBufferSource();
             source.buffer = this.beepBuffer;
             source.connect(this.aCtx.destination);
+            source.onended = () => source.disconnect(); // Garbage Collection cleanup
             source.start(0);
         } catch (e) {}
         // Extremely short cooldown to allow rapid firing
         setTimeout(() => this.beepCooldown = false, 40); 
+    }
+
+    pointLineDist(px, py, x1, y1, x2, y2) {
+        const l2 = (x2 - x1)**2 + (y2 - y1)**2;
+        if (l2 === 0) return Math.sqrt((px - x1)**2 + (py - y1)**2);
+        let t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+        t = Math.max(0, Math.min(1, t));
+        return Math.sqrt((px - (x1 + t * (x2 - x1)))**2 + (py - (y1 + t * (y2 - y1)))**2);
     }
 
     setupListeners() {
@@ -144,15 +153,20 @@ class ResearchApp {
             const rawY = e.clientY - rect.top;
 
             if (this.active) {
-                // Center-based Absolute Scaling: Zero drift, perfect 1-to-1 mapping
-                const cx = this.canvas.width / 2;
-                const cy = this.canvas.height / 2;
-                this.mouseX = cx + (rawX - cx) * sens;
-                this.mouseY = cy + (rawY - cy) * sens;
+                // Use built-in movementX/Y to avoid edge traps, fallback to delta rawX
+                if (e.movementX !== undefined && e.movementY !== undefined) {
+                    this.mouseX += e.movementX * sens;
+                    this.mouseY += e.movementY * sens;
+                } else if (this.lastRawX !== undefined) {
+                    this.mouseX += (rawX - this.lastRawX) * sens;
+                    this.mouseY += (rawY - this.lastRawY) * sens;
+                }
             } else {
                 this.mouseX = rawX;
                 this.mouseY = rawY;
             }
+            this.lastRawX = rawX;
+            this.lastRawY = rawY;
 
             this.mouseX = Math.max(0, Math.min(this.canvas.width, this.mouseX));
             this.mouseY = Math.max(0, Math.min(this.canvas.height, this.mouseY));
@@ -269,7 +283,16 @@ class ResearchApp {
 
         this.target.draw(rTX, rTY);
 
-        const dist = Math.sqrt((this.mouseX - rTX)**2 + (this.mouseY - rTY)**2);
+        // Continuous Collision Detection (CCD) to prevent high-sens tunneling
+        let dist = 0;
+        if (this.prevMouseX !== undefined) {
+            dist = this.pointLineDist(rTX, rTY, this.prevMouseX, this.prevMouseY, this.mouseX, this.mouseY);
+        } else {
+            dist = Math.sqrt((this.mouseX - rTX)**2 + (this.mouseY - rTY)**2);
+        }
+        this.prevMouseX = this.mouseX;
+        this.prevMouseY = this.mouseY;
+
         const onT = dist <= this.target.radius;
         if (document.getElementById('audio-feedback').checked && onT) this.playBeep();
 
