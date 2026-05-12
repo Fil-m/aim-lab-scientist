@@ -131,19 +131,21 @@ button { cursor: pointer; transition: all 0.2s; border: none; }
 }
 
 /* Reports */
-.report-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-    margin: 2rem 0;
-}
-.chart-container {
-    background: rgba(0,0,0,0.2);
-    padding: 1.5rem;
-    border-radius: 16px;
-    height: 350px;
-}
-.chart-container h3 { font-size: 0.9rem; color: var(--text-dim); margin-bottom: 1rem; }
+/* Scientific Report Layout */
+.report-scientific-layout { display: flex; flex-direction: column; gap: 3rem; margin-top: 2rem; }
+.report-row { display: grid; grid-template-columns: 1.2fr 1fr; gap: 2.5rem; align-items: start; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 2.5rem; text-align: left; }
+.chart-container { background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 16px; height: 320px; }
+.chart-desc { padding-top: 1rem; }
+.chart-desc h3 { color: var(--accent); margin-bottom: 0.8rem; font-size: 1.3rem; }
+.chart-desc p { font-size: 0.95rem; line-height: 1.5; color: var(--text-dim); margin-bottom: 1.5rem; }
+.metric-focus { background: rgba(56, 189, 248, 0.05); padding: 1.2rem; border-radius: 12px; border-left: 4px solid var(--accent); }
+.metric-focus b { display: block; font-size: 1.2rem; color: #fff; margin-bottom: 0.3rem; }
+.metric-focus span { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); }
+
+.hypothesis-box { margin-top: 3rem; padding: 2.5rem; border-radius: 16px; background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.3); text-align: center; }
+.hypothesis-box h2 { font-size: 2rem; margin-bottom: 1rem; }
+.hypothesis-box.confirmed { border-color: #10b981; background: rgba(16, 185, 129, 0.05); }
+.hypothesis-box.confirmed h2 { color: #10b981; }
 
 /* Canvas Area */
 #screen-test { background: black; cursor: crosshair; }
@@ -195,19 +197,14 @@ td { font-size: 0.9rem; }
     #app { position: static; height: auto; }
     .screen { position: static; background: white !important; padding: 0 !important; }
     .modal { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; background: white !important; padding: 0 !important; margin: 0 !important; }
-    .report-grid { gap: 0.5rem !important; grid-template-columns: 1fr 1fr !important; }
-    .chart-container { border: 1px solid #eee !important; background: white !important; height: 200px !important; margin-bottom: 0.5rem !important; }
-    .table-container { margin: 0.5rem 0 !important; }
-    th, td { padding: 4px 2px !important; font-size: 0.65rem !important; border: 1px solid #ddd !important; text-align: center; }
-    #session-table { table-layout: fixed; width: 100%; }
-    #session-table th:nth-child(1) { width: 30px; }
-    #session-table th:nth-child(2) { width: 80px; }
-    #session-table th:nth-child(3) { width: 45px; }
-    #session-table th:nth-child(4) { width: 70px; }
-    #session-table th:nth-child(5) { width: 40px; }
-    #session-table th:nth-child(6) { width: 45px; }
-    #session-table th:nth-child(7) { width: 50px; }
-    #session-table th:nth-child(8) { width: 55px; }
+    .report-scientific-layout { gap: 1.5rem; }
+    .report-row { grid-template-columns: 1.5fr 1fr; gap: 1.5rem; border-color: #eee; padding-bottom: 1.5rem; page-break-inside: avoid; }
+    .chart-container { height: 280px !important; border: 1px solid #eee !important; background: none !important; }
+    .metric-focus { background: #f9f9f9 !important; border-left-color: #000 !important; color: #000 !important; padding: 0.5rem !important; }
+    .metric-focus b { color: #000 !important; font-size: 1rem !important; }
+    .chart-desc h3 { font-size: 1.1rem !important; margin-bottom: 0.3rem !important; }
+    .chart-desc p { font-size: 0.8rem !important; margin-bottom: 0.5rem !important; }
+    .hypothesis-box { padding: 1.5rem !important; margin-top: 1.5rem !important; border-width: 2px !important; }
     .no-print, #settings-toggle, #sidebar { display: none !important; }
     h1 { font-size: 1.5rem !important; margin-bottom: 0.5rem !important; }
     h3 { font-size: 0.9rem !important; margin-bottom: 0.2rem !important; }

@@ -120,11 +120,46 @@
                         </div>
                     </div>
 
-                    <div class="report-grid">
-                        <div class="chart-container"><h3>Accuracy (RMSE)</h3><canvas id="chart-tot"></canvas></div>
-                        <div class="chart-container"><h3>Path Efficiency</h3><canvas id="chart-eff"></canvas></div>
-                        <div class="chart-container"><h3>Motor Stability (Jerk)</h3><canvas id="chart-jerk"></canvas></div>
-                        <div class="chart-container"><h3>Precision Error (px)</h3><canvas id="chart-error"></canvas></div>
+                    <div class="report-scientific-layout">
+                        <div class="report-row">
+                            <div class="chart-container"><canvas id="chart-tot"></canvas></div>
+                            <div class="chart-desc">
+                                <h3>Влучність ToT (%)</h3>
+                                <p>Відсоток часу на цілі. Зростання вказує на успішний перенос навички.</p>
+                                <div class="metric-focus" id="metric-tot">Завантаження...</div>
+                            </div>
+                        </div>
+
+                        <div class="report-row">
+                            <div class="chart-container"><canvas id="chart-error"></canvas></div>
+                            <div class="chart-desc">
+                                <h3>Помилка RMSE (px)</h3>
+                                <p>Середня відстань до центру. Чим менше — тим точніші рухи.</p>
+                                <div class="metric-focus" id="metric-error">Завантаження...</div>
+                            </div>
+                        </div>
+
+                        <div class="report-row">
+                            <div class="chart-container"><canvas id="chart-eff"></canvas></div>
+                            <div class="chart-desc">
+                                <h3>Ефективність траєкторії (%)</h3>
+                                <p>Прямота ліній. Висока ефективність = менше зайвих рухів.</p>
+                                <div class="metric-focus" id="metric-eff">Завантаження...</div>
+                            </div>
+                        </div>
+
+                        <div class="report-row">
+                            <div class="chart-container"><canvas id="chart-jerk"></canvas></div>
+                            <div class="chart-desc">
+                                <h3>Плавність рухів (Jerk)</h3>
+                                <p>Показник тремору. Зменшення свідчить про впевненість у рухах.</p>
+                                <div class="metric-focus" id="metric-jerk">Завантаження...</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="hypothesis-conclusion" class="hypothesis-box">
+                        <!-- Conclusion will be injected here -->
                     </div>
 
                     <div class="table-container">
