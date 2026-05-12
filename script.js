@@ -144,19 +144,15 @@ class ResearchApp {
             const rawY = e.clientY - rect.top;
 
             if (this.active) {
-                if (this.lastRawX !== undefined) {
-                    this.mouseX += (rawX - this.lastRawX) * sens;
-                    this.mouseY += (rawY - this.lastRawY) * sens;
-                } else {
-                    this.mouseX = rawX;
-                    this.mouseY = rawY;
-                }
+                // Center-based Absolute Scaling: Zero drift, perfect 1-to-1 mapping
+                const cx = this.canvas.width / 2;
+                const cy = this.canvas.height / 2;
+                this.mouseX = cx + (rawX - cx) * sens;
+                this.mouseY = cy + (rawY - cy) * sens;
             } else {
                 this.mouseX = rawX;
                 this.mouseY = rawY;
             }
-            this.lastRawX = rawX;
-            this.lastRawY = rawY;
 
             this.mouseX = Math.max(0, Math.min(this.canvas.width, this.mouseX));
             this.mouseY = Math.max(0, Math.min(this.canvas.height, this.mouseY));
