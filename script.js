@@ -140,12 +140,24 @@ class ResearchApp {
                 }
             }
             const sens = parseFloat(document.getElementById('input-sens').value) || 1;
+            const rawX = e.clientX - rect.left;
+            const rawY = e.clientY - rect.top;
+
             if (this.active) {
-                this.mouseX += (e.clientX - rect.left - this.mouseX) * sens;
-                this.mouseY += (e.clientY - rect.top - this.mouseY) * sens;
+                if (this.lastRawX !== undefined) {
+                    this.mouseX += (rawX - this.lastRawX) * sens;
+                    this.mouseY += (rawY - this.lastRawY) * sens;
+                } else {
+                    this.mouseX = rawX;
+                    this.mouseY = rawY;
+                }
             } else {
-                this.mouseX = e.clientX - rect.left; this.mouseY = e.clientY - rect.top;
+                this.mouseX = rawX;
+                this.mouseY = rawY;
             }
+            this.lastRawX = rawX;
+            this.lastRawY = rawY;
+
             this.mouseX = Math.max(0, Math.min(this.canvas.width, this.mouseX));
             this.mouseY = Math.max(0, Math.min(this.canvas.height, this.mouseY));
         });
