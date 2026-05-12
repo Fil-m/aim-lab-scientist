@@ -68,8 +68,6 @@ class ResearchApp {
 
         // Audio state
         this.aCtx = null;
-        this.osc = null;
-        this.gainNode = null;
 
         this.init();
     }
