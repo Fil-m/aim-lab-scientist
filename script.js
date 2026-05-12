@@ -81,33 +81,42 @@ class ResearchApp {
     }
 
     initAudio() {
-        if (this.aCtx) return;
+        if (this.aCtx && this.aCtx.state !== 'closed') return;
         this.aCtx = new (window.AudioContext || window.webkitAudioContext)();
-        this.gainNode = this.aCtx.createGain();
-        this.gainNode.gain.value = 0;
-        this.gainNode.connect(this.aCtx.destination);
-
-        this.osc = this.aCtx.createOscillator();
-        this.osc.type = 'sine';
-        this.osc.frequency.value = 330;
-        this.osc.connect(this.gainNode);
-        this.osc.start();
     }
 
     playBeep() {
-        if (!this.aCtx) this.initAudio();
-        if (this.aCtx.state === 'suspended') this.aCtx.resume();
+        this.initAudio();
+        if (this.aCtx.state === 'suspended') {
+            this.aCtx.resume();
+            return; // Skip this beep to allow context to resume
+        }
         
         if (this.beepCooldown) return;
         this.beepCooldown = true;
 
-        const now = this.aCtx.currentTime;
-        this.gainNode.gain.cancelScheduledValues(now);
-        this.gainNode.gain.setValueAtTime(0, now);
-        this.gainNode.gain.linearRampToValueAtTime(0.1, now + 0.01);
-        this.gainNode.gain.linearRampToValueAtTime(0, now + 0.08);
+        try {
+            const now = this.aCtx.currentTime;
+            const osc = this.aCtx.createOscillator();
+            const gain = this.aCtx.createGain();
 
-        setTimeout(() => this.beepCooldown = false, 120);
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(330, now);
+            
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.1, now + 0.01);
+            gain.gain.linearRampToValueAtTime(0, now + 0.1);
+
+            osc.connect(gain);
+            gain.connect(this.aCtx.destination);
+
+            osc.start(now);
+            osc.stop(now + 0.12);
+        } catch (e) {
+            console.warn("Audio play failed:", e);
+        }
+
+        setTimeout(() => this.beepCooldown = false, 150);
     }
 
     setupListeners() {
