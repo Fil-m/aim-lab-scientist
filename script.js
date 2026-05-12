@@ -85,35 +85,31 @@ class ResearchApp {
 
     playBeep() {
         this.initAudio();
+        // Force resume on every attempt to prevent "sleeping" context
         if (this.aCtx.state === 'suspended') {
-            this.aCtx.resume();
-            return; // Skip this beep to allow context to resume
+            this.aCtx.resume().then(() => this.executeBeep());
+        } else {
+            this.executeBeep();
         }
-        
+    }
+
+    executeBeep() {
         if (this.beepCooldown) return;
         this.beepCooldown = true;
-
         try {
             const now = this.aCtx.currentTime;
             const osc = this.aCtx.createOscillator();
             const gain = this.aCtx.createGain();
-
             osc.type = 'sine';
-            osc.frequency.setValueAtTime(330, now);
-            
+            osc.frequency.setValueAtTime(440, now); // Slightly higher pitch for better feedback
             gain.gain.setValueAtTime(0, now);
-            gain.gain.linearRampToValueAtTime(0.1, now + 0.01);
+            gain.gain.linearRampToValueAtTime(0.15, now + 0.01);
             gain.gain.linearRampToValueAtTime(0, now + 0.1);
-
             osc.connect(gain);
             gain.connect(this.aCtx.destination);
-
             osc.start(now);
             osc.stop(now + 0.12);
-        } catch (e) {
-            console.warn("Audio play failed:", e);
-        }
-
+        } catch (e) {}
         setTimeout(() => this.beepCooldown = false, 150);
     }
 
@@ -347,10 +343,10 @@ class ResearchApp {
                 options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, animation: false }
             });
         };
-        createChart('chart-tot', 'Accuracy (RMSE)', this.sessionsData.map(d => d.rmse), '#38bdf8');
-        createChart('chart-eff', 'Path Efficiency (%)', this.sessionsData.map(d => d.eff), '#10b981');
-        createChart('chart-jerk', 'Motor Stability (Jerk)', this.sessionsData.map(d => d.jerk), '#f43f5e');
-        createChart('chart-error', 'Avg Error (px)', this.sessionsData.map(d => d.error), '#fbbf24');
+        createChart('chart-tot', 'Влучність ToT (%)', this.sessionsData.map(d => d.tot), '#10b981');
+        createChart('chart-eff', 'Ефективність траєкторії (%)', this.sessionsData.map(d => d.eff), '#38bdf8');
+        createChart('chart-jerk', 'Стабільність (Jerk)', this.sessionsData.map(d => d.jerk), '#f43f5e');
+        createChart('chart-error', 'Помилка RMSE (px)', this.sessionsData.map(d => d.rmse), '#fbbf24');
     }
 
     exportAllRawCSV() {
