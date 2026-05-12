@@ -5,8 +5,9 @@ class Target {
         this.reset();
     }
     reset(pxPer10cm) {
-        const sizeMm = parseInt(document.getElementById('target-size').value) || 30;
-        this.radius = pxPer10cm ? (sizeMm / 100) * pxPer10cm : sizeMm; 
+        const diamMm = parseInt(document.getElementById('target-size').value) || 20;
+        const radiusMm = diamMm / 2;
+        this.radius = pxPer10cm ? (radiusMm / 100) * pxPer10cm : diamMm * 2; 
         
         const speedCmS = parseInt(document.getElementById('target-speed').value) || 10;
         this.speed = pxPer10cm ? ((speedCmS / 10) * pxPer10cm) / 60 : speedCmS;
@@ -257,9 +258,11 @@ class ResearchApp {
             input.oninput = (e) => {
                 const val = e.target.parentElement.querySelector('.val-display');
                 if (val) {
-                    let suffix = 'px';
+                    let suffix = '';
                     if (e.target.id === 'session-duration') suffix = 'с';
-                    else if (e.target.id === 'target-speed') suffix = '';
+                    else if (e.target.id === 'target-size') suffix = 'мм';
+                    else if (e.target.id === 'target-speed') suffix = 'см/с';
+                    else if (e.target.id.includes('bound-')) suffix = 'см';
                     else if (e.target.id.includes('accel') || e.target.id.includes('chaos')) suffix = '%';
                     val.textContent = e.target.value + suffix;
                 }
