@@ -245,7 +245,7 @@ class ResearchApp {
             }
         });
 
-        const bind = (id, fn) => { const el = document.getElementById(id); if(el) el.onclick = fn; };
+        const bind = (id, fn) => { const el = document.getElementById(id); if(el) el.onclick = (e) => { e.stopPropagation(); fn(e); }; };
         bind('btn-start-test', () => this.startFlow());
         bind('btn-proceed', () => this.startSession());
         bind('settings-toggle', () => document.getElementById('sidebar').classList.toggle('hidden'));
@@ -285,6 +285,7 @@ class ResearchApp {
         if (screenPx > 50 && mouseUnits > 50) {
             const autoSens = (screenPx / mouseUnits).toFixed(2);
             document.getElementById('input-sens').value = autoSens;
+            this.pxPer10cm = screenPx;
             document.getElementById('calib-status').textContent = `✅ Ідеальне співвідношення 1:1 встановлено! (Sens: ${autoSens}, Scr: ${screenPx}px, Ms: ${mouseUnits})`;
         }
         
@@ -292,10 +293,22 @@ class ResearchApp {
         document.getElementById('calibration-overlay').classList.add('hidden');
         this.setTrackingBeep(true); 
         setTimeout(() => this.setTrackingBeep(false), 100); // Warm up audio context
+
+        if (this.flowPending) {
+            this.flowPending = false;
+            this.startFlow();
+        }
     }
 
     startFlow() {
         this.subjectName = document.getElementById('subject-name').value || "Анонім";
+        if (!this.pxPer10cm) {
+            this.flowPending = true;
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden')); // Hide welcome screen
+            this.startCalibration();
+            document.getElementById('calib-tooltip').innerHTML = "<b>КАЛІБРОВКА ОБОВ'ЯЗКОВА!</b><br>Етап 1: Прикладіть лінійку до ЕКРАНУ. Клікніть, проведіть 10см, клікніть.";
+            return;
+        }
         this.currentSession = 0; this.sessionsData = [];
         this.initAudio();
         this.showInstruction();
