@@ -165,11 +165,13 @@ class ResearchApp {
                 }
 
                 if (this.calibPhase === 'screen' && this.calibStep === 1) {
-                    this.calibScreenDist = Math.abs(e.screenX - this.calibStartX);
+                    this.calibScreenDist = Math.sqrt((e.screenX - this.calibStartX)**2 + (e.screenY - this.calibStartY)**2);
                     tooltip.textContent = `Екран: ${Math.round(this.calibScreenDist)}px (Клікніть для збереження 10см)`;
                 } else if (this.calibPhase === 'mouse' && this.calibStep === 1) {
                     if (e.movementX !== undefined && e.movementY !== undefined) {
-                        this.calibMouseDist += Math.sqrt(e.movementX**2 + e.movementY**2);
+                        this.calibMouseAccumX += e.movementX;
+                        this.calibMouseAccumY += e.movementY;
+                        this.calibMouseDist = Math.sqrt(this.calibMouseAccumX**2 + this.calibMouseAccumY**2);
                     }
                     tooltip.textContent = `Миша: ${Math.round(this.calibMouseDist)} од. (Проведіть 10см і клікніть)`;
                 }
@@ -211,6 +213,7 @@ class ResearchApp {
             if (this.calibPhase === 'screen') {
                 if (this.calibStep === 0) {
                     this.calibStartX = e.screenX;
+                    this.calibStartY = e.screenY;
                     this.calibStep = 1;
                 } else if (this.calibStep === 1) {
                     if (this.calibScreenDist > 50) {
@@ -225,6 +228,8 @@ class ResearchApp {
             } else if (this.calibPhase === 'mouse') {
                 if (this.calibStep === 0) {
                     this.calibMouseDist = 0;
+                    this.calibMouseAccumX = 0;
+                    this.calibMouseAccumY = 0;
                     this.calibStep = 1;
                     document.body.requestPointerLock();
                 } else if (this.calibStep === 1) {
@@ -247,7 +252,6 @@ class ResearchApp {
         bind('btn-restart', () => location.reload());
         bind('btn-download-report', () => this.exportAllRawCSV());
         bind('btn-print-report', () => window.print());
-        bind('btn-welcome-calib', (e) => { e.stopPropagation(); this.startCalibration(); });
 
         document.querySelectorAll('input[type="range"]').forEach(input => {
             input.oninput = (e) => {
@@ -267,7 +271,9 @@ class ResearchApp {
 
     startCalibration() {
         this.calibrating = true; this.calibPhase = 'screen'; this.calibStep = 0; 
-        this.calibStartX = null; this.calibScreenDist = 0; this.calibMouseDist = 0;
+        this.calibStartX = null; this.calibStartY = null; 
+        this.calibScreenDist = 0; this.calibMouseDist = 0;
+        this.calibMouseAccumX = 0; this.calibMouseAccumY = 0;
         document.getElementById('calibration-overlay').classList.remove('hidden');
         document.getElementById('calib-tooltip').textContent = "Етап 1: Прикладіть лінійку до ЕКРАНУ. Клікніть, проведіть 10см, клікніть.";
     }
