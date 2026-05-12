@@ -166,7 +166,7 @@ class ResearchApp {
                 }
 
                 if (this.calibPhase === 'screen' && this.calibStep === 1) {
-                    this.calibScreenDist = Math.sqrt((e.screenX - this.calibStartX)**2 + (e.screenY - this.calibStartY)**2);
+                    this.calibScreenDist = Math.sqrt((e.clientX - this.calibStartX)**2 + (e.clientY - this.calibStartY)**2);
                     tooltip.textContent = `Екран: ${Math.round(this.calibScreenDist)}px (Клікніть для збереження 10см)`;
                 } else if (this.calibPhase === 'mouse' && this.calibStep === 1) {
                     if (e.movementX !== undefined && e.movementY !== undefined) {
@@ -213,8 +213,8 @@ class ResearchApp {
             if (!this.calibrating) return;
             if (this.calibPhase === 'screen') {
                 if (this.calibStep === 0) {
-                    this.calibStartX = e.screenX;
-                    this.calibStartY = e.screenY;
+                    this.calibStartX = e.clientX;
+                    this.calibStartY = e.clientY;
                     this.calibStep = 1;
                 } else if (this.calibStep === 1) {
                     if (this.calibScreenDist > 50) {
