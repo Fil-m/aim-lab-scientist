@@ -4,15 +4,35 @@ class Target {
         this.ctx = canvas.getContext('2d');
         this.reset();
     }
-    reset() {
+    reset(pxPer10cm) {
+        const sizeMm = parseInt(document.getElementById('target-size').value) || 30;
+        this.radius = pxPer10cm ? (sizeMm / 100) * pxPer10cm : sizeMm; 
+        
+        const speedCmS = parseInt(document.getElementById('target-speed').value) || 10;
+        this.speed = pxPer10cm ? ((speedCmS / 10) * pxPer10cm) / 60 : speedCmS;
+
+        this.accel = parseInt(document.getElementById('target-accel').value) / 100;
+        this.chaos = parseInt(document.getElementById('target-chaos').value) / 100;
+
+        if (pxPer10cm) {
+            const boundW_cm = parseInt(document.getElementById('bound-width').value) || 25;
+            const boundH_cm = parseInt(document.getElementById('bound-height').value) || 15;
+            this.boundW = (boundW_cm / 10) * pxPer10cm;
+            this.boundH = (boundH_cm / 10) * pxPer10cm;
+        } else {
+            this.boundW = this.canvas.width;
+            this.boundH = this.canvas.height;
+        }
+        
+        this.minX = (this.canvas.width - this.boundW) / 2;
+        this.maxX = this.minX + this.boundW;
+        this.minY = (this.canvas.height - this.boundH) / 2;
+        this.maxY = this.minY + this.boundH;
+
         this.x = this.canvas.width / 2;
         this.y = this.canvas.height / 2;
         this.vx = 0; this.vy = 0;
         this.targetVX = 0; this.targetVY = 0;
-        this.radius = parseInt(document.getElementById('target-size').value);
-        this.speed = parseInt(document.getElementById('target-speed').value);
-        this.accel = parseInt(document.getElementById('target-accel').value) / 100;
-        this.chaos = parseInt(document.getElementById('target-chaos').value) / 100;
     }
     update() {
         if (Math.random() < this.chaos) {
@@ -23,11 +43,11 @@ class Target {
         this.vy += (this.targetVY - this.vy) * this.accel;
         this.x += this.vx; this.y += this.vy;
 
-        let minY = this.radius;
-        if (document.getElementById('touch-offset').checked) minY += 80;
+        let effMinY = this.minY;
+        if (document.getElementById('touch-offset').checked) effMinY += 80;
 
-        if (this.x < this.radius || this.x > this.canvas.width - this.radius) { this.vx *= -1; this.x = Math.max(this.radius, Math.min(this.canvas.width - this.radius, this.x)); }
-        if (this.y < minY || this.y > this.canvas.height - this.radius) { this.vy *= -1; this.y = Math.max(minY, Math.min(this.canvas.height - this.radius, this.y)); }
+        if (this.x - this.radius < this.minX || this.x + this.radius > this.maxX) { this.vx *= -1; this.x = Math.max(this.minX + this.radius, Math.min(this.maxX - this.radius, this.x)); }
+        if (this.y - this.radius < effMinY || this.y + this.radius > this.maxY) { this.vy *= -1; this.y = Math.max(effMinY + this.radius, Math.min(this.maxY - this.radius, this.y)); }
     }
     draw(rX, rY) {
         const x = rX || this.x; const y = rY || this.y;
@@ -292,7 +312,8 @@ class ResearchApp {
     startSession() {
         document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
         document.getElementById('screen-test').classList.remove('hidden');
-        this.active = true; this.currentData = []; this.target.reset();
+        this.active = true; this.currentData = []; 
+        this.target.reset(this.pxPer10cm);
         this.sessionStartTime = Date.now(); this.totalMD = 0; this.totalTD = 0;
         this.loop();
     }
@@ -304,6 +325,13 @@ class ResearchApp {
         if (elapsed >= duration) { this.endSession(); return; }
 
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        if (this.pxPer10cm) {
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(this.target.minX, this.target.minY, this.target.boundW, this.target.boundH);
+        }
+
         const oldTX = this.target.x, oldTY = this.target.y;
         this.target.update();
 
