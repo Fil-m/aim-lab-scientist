@@ -84,48 +84,43 @@ class ResearchApp {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
             this.aCtx = new AudioCtx();
             
-            // Generate a 50ms beep buffer (Square wave, 600Hz, 10% volume)
-            const sampleRate = this.aCtx.sampleRate;
-            const length = Math.floor(sampleRate * 0.05);
-            this.beepBuffer = this.aCtx.createBuffer(1, length, sampleRate);
-            const data = this.beepBuffer.getChannelData(0);
-            for (let i = 0; i < length; i++) {
-                data[i] = Math.sin(2 * Math.PI * 600 * (i / sampleRate)) > 0 ? 0.1 : -0.1;
-            }
+            // Single persistent oscillator for continuous tracking tone
+            this.trackingOsc = this.aCtx.createOscillator();
+            this.trackingOsc.type = 'square';
+            this.trackingOsc.frequency.value = 600;
+            
+            this.trackingGain = this.aCtx.createGain();
+            this.trackingGain.gain.value = 0; // Start silent
+            
+            this.trackingOsc.connect(this.trackingGain);
+            this.trackingGain.connect(this.aCtx.destination);
+            
+            this.trackingOsc.start(0);
             
             // Force unlock audio context with a silent play
-            const source = this.aCtx.createBufferSource();
-            source.buffer = this.beepBuffer;
-            const gain = this.aCtx.createGain();
-            gain.gain.value = 0.0001; // Silent for the unlock
-            source.connect(gain);
-            gain.connect(this.aCtx.destination);
-            source.start(0);
+            const unlockBuf = this.aCtx.createBuffer(1, 1, 22050);
+            const unlockSrc = this.aCtx.createBufferSource();
+            unlockSrc.buffer = unlockBuf;
+            unlockSrc.connect(this.aCtx.destination);
+            unlockSrc.start(0);
         } catch (e) {
             console.warn("Audio init failed:", e);
         }
     }
 
-    playBeep() {
-        if (!this.aCtx) this.initAudio();
-        if (this.aCtx && this.aCtx.state === 'suspended') {
+    setTrackingBeep(isTracking) {
+        if (!this.aCtx || !this.trackingGain) return;
+        if (this.aCtx.state === 'suspended') {
             this.aCtx.resume().catch(() => {});
         }
-        this.executeBeep();
-    }
-
-    executeBeep() {
-        if (this.beepCooldown || !this.aCtx || !this.beepBuffer) return;
-        this.beepCooldown = true;
-        try {
-            const source = this.aCtx.createBufferSource();
-            source.buffer = this.beepBuffer;
-            source.connect(this.aCtx.destination);
-            source.onended = () => source.disconnect(); // Garbage Collection cleanup
-            source.start(0);
-        } catch (e) {}
-        // Extremely short cooldown to allow rapid firing
-        setTimeout(() => this.beepCooldown = false, 40); 
+        
+        const now = this.aCtx.currentTime;
+        // Smoothly ramp volume to avoid clicking artifacts
+        if (isTracking) {
+            this.trackingGain.gain.setTargetAtTime(0.05, now, 0.015);
+        } else {
+            this.trackingGain.gain.setTargetAtTime(0, now, 0.015);
+        }
     }
 
     pointLineDist(px, py, x1, y1, x2, y2) {
@@ -236,7 +231,8 @@ class ResearchApp {
         }
         this.calibrating = false; this.calibStep = 0;
         document.getElementById('calibration-overlay').classList.add('hidden');
-        this.playBeep(); // Warm up audio context
+        this.setTrackingBeep(true); 
+        setTimeout(() => this.setTrackingBeep(false), 100); // Warm up audio context
     }
 
     startFlow() {
@@ -294,7 +290,11 @@ class ResearchApp {
         this.prevMouseY = this.mouseY;
 
         const onT = dist <= this.target.radius;
-        if (document.getElementById('audio-feedback').checked && onT) this.playBeep();
+        if (document.getElementById('audio-feedback').checked) {
+            this.setTrackingBeep(onT);
+        } else {
+            this.setTrackingBeep(false);
+        }
 
         if (this.currentData.length > 0) {
             const prev = this.currentData[this.currentData.length - 1];
@@ -320,6 +320,7 @@ class ResearchApp {
 
     endSession() {
         this.active = false;
+        this.setTrackingBeep(false); // Stop audio when session ends
         const tot = (this.currentData.filter(d => d.onT).length / this.currentData.length * 100).toFixed(1);
         const eff = this.totalMD > 0 ? (this.totalTD / this.totalMD * 100).toFixed(1) : 100;
         const rmse = Math.sqrt(this.currentData.reduce((acc, d) => acc + d.dist**2, 0) / this.currentData.length).toFixed(2);
