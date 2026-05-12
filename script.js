@@ -79,60 +79,49 @@ class ResearchApp {
     }
 
     initAudio() {
-        if (this.aCtx) {
-            if (this.aCtx.state === 'suspended') this.aCtx.resume();
-            return;
-        }
+        if (this.aCtx) return;
         try {
-            this.aCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            this.aCtx = new AudioCtx();
             
-            // Force unlock for strict browsers (iOS Safari, Chrome on GitHub Pages)
-            const buffer = this.aCtx.createBuffer(1, 1, 22050);
-            const source = this.aCtx.createBufferSource();
-            source.buffer = buffer;
-            source.connect(this.aCtx.destination);
-            source.start(0);
-
-            // Silent heartbeat to keep AudioContext active
+            // Force unlock
             const osc = this.aCtx.createOscillator();
             const gain = this.aCtx.createGain();
-            gain.gain.value = 0.0001;
+            gain.gain.value = 0.0001; // Silent heartbeat
             osc.connect(gain);
             gain.connect(this.aCtx.destination);
-            osc.start();
+            osc.start(0);
         } catch (e) {
             console.warn("Audio init failed:", e);
         }
     }
 
     playBeep() {
-        this.initAudio();
-        // Force resume on every attempt to prevent "sleeping" context
-        if (this.aCtx.state === 'suspended') {
-            this.aCtx.resume().then(() => this.executeBeep());
-        } else {
-            this.executeBeep();
+        if (!this.aCtx) this.initAudio();
+        if (this.aCtx && this.aCtx.state === 'suspended') {
+            this.aCtx.resume().catch(() => {});
         }
+        this.executeBeep();
     }
 
     executeBeep() {
-        if (this.beepCooldown) return;
+        if (this.beepCooldown || !this.aCtx) return;
         this.beepCooldown = true;
         try {
-            const now = this.aCtx.currentTime;
             const osc = this.aCtx.createOscillator();
             const gain = this.aCtx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(440, now); // Slightly higher pitch for better feedback
-            gain.gain.setValueAtTime(0, now);
-            gain.gain.linearRampToValueAtTime(0.15, now + 0.01);
-            gain.gain.linearRampToValueAtTime(0, now + 0.1);
+            osc.type = 'square'; // More audible and reliable
+            osc.frequency.value = 600; // Good piercing beep
+            
+            gain.gain.value = 0.05; // Fixed low volume
+            
             osc.connect(gain);
             gain.connect(this.aCtx.destination);
-            osc.start(now);
-            osc.stop(now + 0.12);
+            
+            osc.start(this.aCtx.currentTime);
+            osc.stop(this.aCtx.currentTime + 0.05); // Ultra short
         } catch (e) {}
-        setTimeout(() => this.beepCooldown = false, 150);
+        setTimeout(() => this.beepCooldown = false, 100);
     }
 
     setupListeners() {
