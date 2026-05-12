@@ -79,8 +79,20 @@ class ResearchApp {
     }
 
     initAudio() {
-        if (this.aCtx && this.aCtx.state !== 'closed') return;
-        this.aCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (this.aCtx) {
+            if (this.aCtx.state === 'suspended') this.aCtx.resume();
+            return;
+        }
+        try {
+            this.aCtx = new (window.AudioContext || window.webkitAudioContext)();
+            // Silent heartbeat to keep AudioContext active
+            const osc = this.aCtx.createOscillator();
+            const gain = this.aCtx.createGain();
+            gain.gain.value = 0.0001;
+            osc.connect(gain);
+            gain.connect(this.aCtx.destination);
+            osc.start();
+        } catch (e) {}
     }
 
     playBeep() {
@@ -145,7 +157,13 @@ class ResearchApp {
                 this.calibStartX = e.screenX;
                 this.calibStep = 1;
             } else if (this.calibStep === 1) {
-                this.stopCalibration();
+                if (this.calibTotalDist > 50) {
+                    this.stopCalibration();
+                } else {
+                    // Reset if too small to avoid NaN
+                    this.calibStep = 0;
+                    document.getElementById('calib-tooltip').textContent = "Замало! Клікніть в одній точці, потім проведіть 30-40 см і клікніть ще раз.";
+                }
             }
         });
 
