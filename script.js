@@ -136,11 +136,22 @@ class ResearchApp {
         window.addEventListener('pointermove', (e) => {
             const rect = this.canvas.getBoundingClientRect();
             if (this.calibrating) {
-                tooltip.style.left = (e.clientX + 15) + 'px';
-                tooltip.style.top = (e.clientY + 15) + 'px';
-                if (this.calibStep === 1) {
-                    this.calibTotalDist = Math.abs(e.screenX - this.calibStartX);
-                    tooltip.textContent = `Вимірювання: ${Math.round(this.calibTotalDist)}px (Клікніть для збереження)`;
+                if (document.pointerLockElement) {
+                    tooltip.style.left = (window.innerWidth / 2 + 20) + 'px';
+                    tooltip.style.top = (window.innerHeight / 2 + 20) + 'px';
+                } else {
+                    tooltip.style.left = (e.clientX + 15) + 'px';
+                    tooltip.style.top = (e.clientY + 15) + 'px';
+                }
+
+                if (this.calibPhase === 'screen' && this.calibStep === 1) {
+                    this.calibScreenDist = Math.abs(e.screenX - this.calibStartX);
+                    tooltip.textContent = `Екран: ${Math.round(this.calibScreenDist)}px (Клікніть для збереження 10см)`;
+                } else if (this.calibPhase === 'mouse' && this.calibStep === 1) {
+                    if (e.movementX !== undefined && e.movementY !== undefined) {
+                        this.calibMouseDist += Math.sqrt(e.movementX**2 + e.movementY**2);
+                    }
+                    tooltip.textContent = `Миша: ${Math.round(this.calibMouseDist)} од. (Проведіть 10см і клікніть)`;
                 }
             }
             const sens = parseFloat(document.getElementById('input-sens').value) || 1;
@@ -177,16 +188,34 @@ class ResearchApp {
 
         window.addEventListener('click', (e) => {
             if (!this.calibrating) return;
-            if (this.calibStep === 0) {
-                this.calibStartX = e.screenX;
-                this.calibStep = 1;
-            } else if (this.calibStep === 1) {
-                if (this.calibTotalDist > 50) {
-                    this.stopCalibration();
-                } else {
-                    // Reset if too small to avoid NaN
-                    this.calibStep = 0;
-                    document.getElementById('calib-tooltip').textContent = "Замало! Клікніть в одній точці, потім проведіть 30-40 см і клікніть ще раз.";
+            if (this.calibPhase === 'screen') {
+                if (this.calibStep === 0) {
+                    this.calibStartX = e.screenX;
+                    this.calibStep = 1;
+                } else if (this.calibStep === 1) {
+                    if (this.calibScreenDist > 50) {
+                        this.calibPhase = 'mouse';
+                        this.calibStep = 0;
+                        document.getElementById('calib-tooltip').textContent = "Етап 2: Лінійка на СТІЛ. Клікніть, проведіть мишкою 10см, клікніть.";
+                    } else {
+                        this.calibStep = 0;
+                        document.getElementById('calib-tooltip').textContent = "Замало! Проведіть 10см по ЕКРАНУ і клікніть.";
+                    }
+                }
+            } else if (this.calibPhase === 'mouse') {
+                if (this.calibStep === 0) {
+                    this.calibMouseDist = 0;
+                    this.calibStep = 1;
+                    document.body.requestPointerLock();
+                } else if (this.calibStep === 1) {
+                    if (this.calibMouseDist > 50) {
+                        document.exitPointerLock();
+                        this.stopCalibration();
+                    } else {
+                        document.exitPointerLock();
+                        this.calibStep = 0;
+                        document.getElementById('calib-tooltip').textContent = "Замало! Клікніть і проведіть 10см по СТОЛУ.";
+                    }
                 }
             }
         });
@@ -217,19 +246,23 @@ class ResearchApp {
     resize() { this.canvas.width = window.innerWidth; this.canvas.height = window.innerHeight; }
 
     startCalibration() {
-        this.calibrating = true; this.calibStep = 0; this.calibStartX = null; this.calibTotalDist = 0;
+        this.calibrating = true; this.calibPhase = 'screen'; this.calibStep = 0; 
+        this.calibStartX = null; this.calibScreenDist = 0; this.calibMouseDist = 0;
         document.getElementById('calibration-overlay').classList.remove('hidden');
-        document.getElementById('calib-tooltip').textContent = "Натисніть КЛІК, щоб почати (10см)";
+        document.getElementById('calib-tooltip').textContent = "Етап 1: Прикладіть лінійку до ЕКРАНУ. Клікніть, проведіть 10см, клікніть.";
     }
 
     stopCalibration() {
-        const total = Math.round(this.calibTotalDist);
-        if (total > 50) {
-            const autoSens = (2480 / total).toFixed(2);
+        const screenPx = Math.round(this.calibScreenDist);
+        const mouseUnits = Math.round(this.calibMouseDist);
+        
+        if (screenPx > 50 && mouseUnits > 50) {
+            const autoSens = (screenPx / mouseUnits).toFixed(2);
             document.getElementById('input-sens').value = autoSens;
-            document.getElementById('calib-status').textContent = `✅ Калібровка успішна: ${total}px. Sens адаптовано.`;
+            document.getElementById('calib-status').textContent = `✅ Ідеальне співвідношення 1:1 встановлено! (Sens: ${autoSens}, Scr: ${screenPx}px, Ms: ${mouseUnits})`;
         }
-        this.calibrating = false; this.calibStep = 0;
+        
+        this.calibrating = false; this.calibPhase = null; this.calibStep = 0;
         document.getElementById('calibration-overlay').classList.add('hidden');
         this.setTrackingBeep(true); 
         setTimeout(() => this.setTrackingBeep(false), 100); // Warm up audio context
