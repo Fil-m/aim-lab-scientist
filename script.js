@@ -85,6 +85,14 @@ class ResearchApp {
         }
         try {
             this.aCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Force unlock for strict browsers (iOS Safari, Chrome on GitHub Pages)
+            const buffer = this.aCtx.createBuffer(1, 1, 22050);
+            const source = this.aCtx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(this.aCtx.destination);
+            source.start(0);
+
             // Silent heartbeat to keep AudioContext active
             const osc = this.aCtx.createOscillator();
             const gain = this.aCtx.createGain();
@@ -92,7 +100,9 @@ class ResearchApp {
             osc.connect(gain);
             gain.connect(this.aCtx.destination);
             osc.start();
-        } catch (e) {}
+        } catch (e) {
+            console.warn("Audio init failed:", e);
+        }
     }
 
     playBeep() {
@@ -148,10 +158,15 @@ class ResearchApp {
             this.mouseY = Math.max(0, Math.min(this.canvas.height, this.mouseY));
         });
 
-        window.addEventListener('click', (e) => {
-            this.initAudio(); // Initialize on any click
+        const unlockAudio = () => {
+            this.initAudio();
             if (this.aCtx && this.aCtx.state === 'suspended') this.aCtx.resume();
+        };
+        document.body.addEventListener('click', unlockAudio, true);
+        document.body.addEventListener('touchstart', unlockAudio, true);
+        document.body.addEventListener('pointerdown', unlockAudio, true);
 
+        window.addEventListener('click', (e) => {
             if (!this.calibrating) return;
             if (this.calibStep === 0) {
                 this.calibStartX = e.screenX;
