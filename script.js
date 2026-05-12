@@ -207,6 +207,7 @@ class ResearchApp {
         }
         this.calibrating = false; this.calibStep = 0;
         document.getElementById('calibration-overlay').classList.add('hidden');
+        this.playBeep(); // Warm up audio context
     }
 
     startFlow() {

@@ -196,7 +196,8 @@ td { font-size: 0.9rem; }
     body { background: white !important; color: black !important; overflow: visible !important; height: auto !important; }
     #app { position: static; height: auto; }
     .screen { position: static; background: white !important; padding: 0 !important; }
-    .modal { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; background: white !important; padding: 0 !important; margin: 0 !important; }
+    .modal { box-shadow: none !important; border: none !important; width: 100% !important; max-width: 100% !important; background: white !important; padding: 0 !important; margin: 0 !important; max-height: none !important; overflow: visible !important; }
+    .report-modal { max-height: none !important; overflow: visible !important; }
     .report-scientific-layout { gap: 1.5rem; }
     .report-row { grid-template-columns: 1.5fr 1fr; gap: 1.5rem; border-color: #eee; padding-bottom: 1.5rem; page-break-inside: avoid; }
     .chart-container { height: 280px !important; border: 1px solid #eee !important; background: none !important; }
