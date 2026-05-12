@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuroAim Research Suite</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Settings Gear -->
+        <button id="settings-toggle" class="icon-btn">⚙️</button>
+
+        <!-- Sidebar (Hidden by default) -->
+        <aside id="sidebar" class="settings-panel hidden">
+            <header>
+                <h2>Налаштування</h2>
+                <p>Параметри експерименту</p>
+            </header>
+            <div class="settings-groups">
+                <section class="group">
+                    <h3>Введення (Input)</h3>
+                    <div class="control">
+                        <button id="open-calibration" class="secondary-btn" style="width: 100%;">Калібрування 10см</button>
+                    </div>
+                    <div class="control">
+                        <label>Множник чутливості (Sens):</label>
+                        <input type="number" id="input-sens" value="1.0" step="0.1" min="0.1">
+                    </div>
+                </section>
+                <section class="group">
+                    <h3>Фізика цілі</h3>
+                    <div class="control"><label>Тривалість (сек):</label><input type="range" id="session-duration" min="5" max="120" value="30"><span class="val-display">30с</span></div>
+                    <div class="control"><label>Розмір (px):</label><input type="range" id="target-size" min="5" max="150" value="40"><span class="val-display">40px</span></div>
+                    <div class="control"><label>Швидкість:</label><input type="range" id="target-speed" min="1" max="30" value="10"><span class="val-display">10</span></div>
+                    <div class="control"><label>Різкість:</label><input type="range" id="target-accel" min="1" max="100" value="30"><span class="val-display">30%</span></div>
+                    <div class="control"><label>Хаос:</label><input type="range" id="target-chaos" min="1" max="100" value="20"><span class="val-display">20%</span></div>
+                </section>
+                <section class="group">
+                    <h3>Опції</h3>
+                    <div class="control checkbox"><label for="audio-feedback">Звуковий сигнал (on-target)</label><input type="checkbox" id="audio-feedback" checked></div>
+                    <div class="control checkbox"><label for="touch-offset">Зміщення для пальця (Offset)</label><input type="checkbox" id="touch-offset" checked></div>
+                </section>
+            </div>
+            <button id="export-history" class="secondary-btn">Експорт історії (CSV)</button>
+            <button id="reset-history" class="secondary-btn danger">Скинути все</button>
+        </aside>
+
+        <!-- Screens -->
+        <main id="screen-container">
+            <!-- 0. Calibration Overlay -->
+            <div id="calibration-overlay" class="overlay hidden" style="background: rgba(0,0,0,0.4); cursor: crosshair;">
+                <div id="calib-tooltip" class="floating-tooltip">
+                    Натисніть КЛІК, щоб почати
+                </div>
+            </div>
+
+            <!-- 1. Welcome Screen -->
+            <section id="screen-welcome" class="screen">
+                <div class="modal central-modal">
+                    <h1>NeuroAim Lab</h1>
+                    <p>Дослідження нейромоторної адаптації</p>
+                    <div class="input-group">
+                        <label>Ім'я піддослідного:</label>
+                        <input type="text" id="subject-name" placeholder="Введіть ім'я...">
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <button id="btn-welcome-calib" class="secondary-btn" style="flex: 1;">📐 Калібрувати 10см</button>
+                    </div>
+                    <button id="btn-start-test" class="primary-btn big-btn">Почати дослідження</button>
+                    <p id="calib-status" style="margin-top: 15px; font-size: 0.8rem; color: var(--accent);"></p>
+                </div>
+            </section>
+
+            <!-- 2. Instruction Screen -->
+            <section id="screen-instruction" class="screen hidden">
+                <div class="modal central-modal">
+                    <h2 id="inst-title">Сесія 1</h2>
+                    <div id="inst-content" class="instruction-box">
+                        <!-- Динамічний контент -->
+                    </div>
+                    <button id="btn-proceed" class="primary-btn">Зрозумів, почати</button>
+                </div>
+            </section>
+
+            <!-- 3. Testing Screen -->
+            <section id="screen-test" class="screen hidden">
+                <div id="live-stats" class="stats-overlay hidden">
+                    <span>Сесія: <b id="stat-session">1/10</b></span>
+                    <span>ToT: <b id="live-tot">0</b>%</span>
+                    <span>Eff: <b id="live-eff">0</b>%</span>
+                </div>
+                <canvas id="aim-canvas"></canvas>
+            </section>
+
+            <!-- 4. Rest Screen -->
+            <section id="screen-rest" class="screen hidden">
+                <div class="modal central-modal">
+                    <h2 id="rest-title">Відпочинок</h2>
+                    <p id="rest-session-info" style="color:var(--text-dim); margin-bottom: 20px;"></p>
+                    <div class="timer-display" id="rest-timer">10</div>
+                    <p style="margin-top: 20px;">Наступна фаза: <b id="next-session-name" style="color:var(--accent);">...</b></p>
+                    <p id="next-session-duration-info" style="font-size: 0.8rem; margin-top: 5px;"></p>
+                </div>
+            </section>
+
+            <!-- 5. Final Report Screen -->
+            <section id="screen-report" class="screen hidden">
+                <div class="modal report-modal">
+                    <header class="report-header">
+                        <h1>Звіт наукового дослідження NeuroAim</h1>
+                        <p>Піддослідний: <b id="rep-name">...</b> | Дата: <span id="rep-date"></span></p>
+                    </header>
+                    
+                    <div class="report-summary-box">
+                        <h3>Аналіз переносу навички (Transfer Effect)</h3>
+                        <div id="transfer-stats" class="stats-grid">
+                            <!-- Заповнюється динамічно -->
+                        </div>
+                    </div>
+
+                    <div class="report-grid">
+                        <div class="chart-container"><h3>Accuracy (RMSE)</h3><canvas id="chart-tot"></canvas></div>
+                        <div class="chart-container"><h3>Path Efficiency</h3><canvas id="chart-eff"></canvas></div>
+                        <div class="chart-container"><h3>Motor Stability (Jerk)</h3><canvas id="chart-jerk"></canvas></div>
+                        <div class="chart-container"><h3>Precision Error (px)</h3><canvas id="chart-error"></canvas></div>
+                    </div>
+
+                    <div class="table-container">
+                        <h3>Протокол сесій та змінні</h3>
+                        <table id="session-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Тип</th>
+                                    <th>Час (с)</th>
+                                    <th>Швидкість</th>
+                                    <th>Хаос</th>
+                                    <th>Sens</th>
+                                    <th>ToT %</th>
+                                    <th>RMSE</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                    <div class="final-actions no-print">
+                        <button id="btn-print-report" class="primary-btn">🖨️ Друкувати звіт (PDF)</button>
+                        <button id="btn-download-report" class="secondary-btn">💾 Завантажити сирі дані (CSV)</button>
+                        <button id="btn-restart" class="secondary-btn danger">Нове дослідження</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="tests.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
