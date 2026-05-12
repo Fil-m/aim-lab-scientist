@@ -84,13 +84,23 @@ class ResearchApp {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
             this.aCtx = new AudioCtx();
             
-            // Force unlock
-            const osc = this.aCtx.createOscillator();
+            // Generate a 50ms beep buffer (Square wave, 600Hz, 10% volume)
+            const sampleRate = this.aCtx.sampleRate;
+            const length = Math.floor(sampleRate * 0.05);
+            this.beepBuffer = this.aCtx.createBuffer(1, length, sampleRate);
+            const data = this.beepBuffer.getChannelData(0);
+            for (let i = 0; i < length; i++) {
+                data[i] = Math.sin(2 * Math.PI * 600 * (i / sampleRate)) > 0 ? 0.1 : -0.1;
+            }
+            
+            // Force unlock audio context with a silent play
+            const source = this.aCtx.createBufferSource();
+            source.buffer = this.beepBuffer;
             const gain = this.aCtx.createGain();
-            gain.gain.value = 0.0001; // Silent heartbeat
-            osc.connect(gain);
+            gain.gain.value = 0.0001; // Silent for the unlock
+            source.connect(gain);
             gain.connect(this.aCtx.destination);
-            osc.start(0);
+            source.start(0);
         } catch (e) {
             console.warn("Audio init failed:", e);
         }
@@ -105,23 +115,16 @@ class ResearchApp {
     }
 
     executeBeep() {
-        if (this.beepCooldown || !this.aCtx) return;
+        if (this.beepCooldown || !this.aCtx || !this.beepBuffer) return;
         this.beepCooldown = true;
         try {
-            const osc = this.aCtx.createOscillator();
-            const gain = this.aCtx.createGain();
-            osc.type = 'square'; // More audible and reliable
-            osc.frequency.value = 600; // Good piercing beep
-            
-            gain.gain.value = 0.05; // Fixed low volume
-            
-            osc.connect(gain);
-            gain.connect(this.aCtx.destination);
-            
-            osc.start(this.aCtx.currentTime);
-            osc.stop(this.aCtx.currentTime + 0.05); // Ultra short
+            const source = this.aCtx.createBufferSource();
+            source.buffer = this.beepBuffer;
+            source.connect(this.aCtx.destination);
+            source.start(0);
         } catch (e) {}
-        setTimeout(() => this.beepCooldown = false, 100);
+        // Extremely short cooldown to allow rapid firing
+        setTimeout(() => this.beepCooldown = false, 40); 
     }
 
     setupListeners() {
